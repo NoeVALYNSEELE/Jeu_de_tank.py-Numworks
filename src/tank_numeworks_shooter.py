@@ -2,7 +2,7 @@ import ion
 import kandinsky
 from time import *
 
-# Définition de la taille de l'écran
+# Définition de la taille de l'écran
 SCREEN_WIDTH = 320
 SCREEN_HEIGHT = 240
 TANK_SIZE = 20
@@ -13,6 +13,8 @@ tank1_x, tank1_y = 50, 100
 tank2_x, tank2_y = 200, 100
 orientationt1 = 1
 orientationt2 = 1
+vie_tank1 = 5
+vie_tank2 = 5
 
 # Couleurs des tanks
 COLOR_TANK1 = (255, 0, 0)  # Rouge
@@ -22,11 +24,11 @@ COLOR_WALL = (0, 0, 0)  # Noir pour les murs
 #Variable de shoot
 last_shot1 = 0  # Temps du dernier tir pour le tank 
 last_shot2 = 0
-COOLDOWN = 0.3  # Délai en secondes (ici 300 ms) entre deux tirs
+COOLDOWN = 0.3  # Délai en secondes (ici 300 ms) entre deux tirs
 current_time = monotonic()
 
 
-# Définir les murs comme une liste de rectangles
+# Définir les murs comme une liste de rectangles
 walls = [
     (50, 50, 100, 10),  # mur 1: x, y, largeur, hauteur
     (200, 150, 100, 10),  # mur 2
@@ -37,9 +39,12 @@ walls = [
 bullets1 = []
 bullets2 = []
 
+# Définir la fréquence du rafraîchissement
+FPS = 20  # Fréquence en images par seconde
+frame_time = 1 / FPS  # Durée par frame en secondes
 
 def draw():
-    # Effacer l'écran avant de redessiner les tanks et les murs
+    # Effacer l'écran avant de redessiner les tanks et les murs
     kandinsky.fill_rect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, (255, 255, 255))  # Fond blanc
 
     # Dessiner les murs
@@ -74,7 +79,7 @@ def draw():
       kandinsky.fill_rect(tank2_x + 7, tank2_y - 7, 7, 27, COLOR_TANK2)
 
 def move_tank1():
-    global tank1_x, tank1_y, orientationt1, last_shot1  # Déclare les variables comme globales
+    global tank1_x, tank1_y, orientationt1, last_shot1  # Déclare les variables comme globales
     new_x, new_y = tank1_x, tank1_y 
 
     if ion.keydown(ion.KEY_UP):
@@ -83,14 +88,14 @@ def move_tank1():
     elif ion.keydown(ion.KEY_DOWN):
         new_y += SPEED
         orientationt1 = 2
-    elif ion.keydown(ion.KEY_LEFT):
+    elif ion.keydown(ion.KEY_LEFT): #Mettre if pour diagonales MAIS BUGS
         new_x -= SPEED
         orientationt1 = 3
     elif ion.keydown(ion.KEY_RIGHT):
         new_x += SPEED
         orientationt1 = 1
 
-    # Vérifier la collision avec les murs
+    # Vérifier la collision avec les murs
     if not check_collision(new_x, new_y):
         tank1_x, tank1_y = new_x, new_y
     
@@ -114,10 +119,10 @@ def move_tank1():
         bullet1["dx"]=0
         bullet1["dy"]=-10
       bullets1.append(bullet1)
-      last_shot1 = current_time  # On met à jour le temps du dernier tir
+      last_shot1 = current_time  # On met à jour le temps du dernier tir
       
 def move_tank2():
-    global tank2_x, tank2_y, orientationt2, last_shot2  # Déclare les variables comme globales
+    global tank2_x, tank2_y, orientationt2, last_shot2  # Déclare les variables comme globales
     new_x, new_y = tank2_x, tank2_y
 
     if ion.keydown(ion.KEY_PLUS):
@@ -126,14 +131,14 @@ def move_tank2():
     elif ion.keydown(ion.KEY_ANS):
         new_y += SPEED
         orientationt2 = 2
-    elif ion.keydown(ion.KEY_EE):
+    elif ion.keydown(ion.KEY_EE): #Seulement if, pour les diagonales MAIS BUGS
         new_x -= SPEED
         orientationt2 = 3
     elif ion.keydown(ion.KEY_EXE):
         new_x += SPEED
         orientationt2 = 1
 
-    # Vérifier la collision avec les murs
+    # Vérifier la collision avec les murs
     if not check_collision(new_x, new_y):
         tank2_x, tank2_y = new_x, new_y
 
@@ -157,7 +162,7 @@ def move_tank2():
         bullet2["dx"]=0
         bullet2["dy"]=-10
       bullets2.append(bullet2)
-      last_shot2 = current_time  # On met à jour le temps du dernier tir
+      last_shot2 = current_time  # On met à jour le temps du dernier tir
     
     
 def check_collision(new_x, new_y):
@@ -168,22 +173,69 @@ def check_collision(new_x, new_y):
       return True
     return False  # Pas de collision
 
-def move_bullets():
+def move_bullets(): #Déplace et vérifie les collisions des boulets
+  global tank1_x, tank1_y, tank2_x, tank2_y, vie_tank1, vie_tank2
   for bullet1 in bullets1:
     bullet1["x"] += bullet1["dx"]
     bullet1["y"] += bullet1["dy"]
+    #Vérifie les collisions avec les murs
+    for (wx, wy, ww, wh) in walls: 
+      if (bullet1["x"] >= wx and bullet1["x"] <= wx + ww and bullet1["y"] >= wy and bullet1["y"] <= wy + wh):
+        bullets1.remove(bullet1)
+    #Vérifie les collisions avec les tanks
+    if(bullet1["x"] >= tank2_x and bullet1["x"] <= tank2_x + TANK_SIZE and bullet1["y"] >= tank2_y and bullet1["y"] <= tank2_y + TANK_SIZE):
+      vie_tank2 -= 1
+      tank1_x, tank1_y = 50, 100
+      tank2_x, tank2_y = 200, 100
+      bullets1.remove(bullet1)
+  
   for bullet2 in bullets2:
     bullet2["x"] += bullet2["dx"]
     bullet2["y"] += bullet2["dy"]
-    
+    for (wx, wy, ww, wh) in walls:
+      if (bullet2["x"] >= wx and bullet2["x"] <= wx + ww and bullet2["y"] >= wy and bullet2["y"] <= wy + wh):
+        bullets2.remove(bullet2)
+    #Vérifie les collisions avec les tanks
+    if(bullet2["x"] >= tank1_x and bullet2["x"] <= tank1_x + TANK_SIZE and bullet2["y"] >= tank1_y and bullet2["y"] <= tank1_y + TANK_SIZE):
+      vie_tank1 -= 1
+      tank1_x, tank1_y = 50, 100
+      tank2_x, tank2_y = 200, 100
+      bullets2.remove(bullet2)
+
+def HUD():
+  kandinsky.draw_string(str("Vie : "),0,0,(255, 0, 0),(255, 255, 255))
+  kandinsky.draw_string(str(vie_tank1),57,0,(255, 0, 0),(255, 255, 255))
+  kandinsky.draw_string(str("Vie : "),250,0,(0, 0, 255),(255, 255, 255))
+  kandinsky.draw_string(str(vie_tank2),307,0,(0, 0, 255),(255, 255, 255))
+
+def test_mort():
+  global running
+  if vie_tank1 <= 0:
+    running = False
+    kandinsky.fill_rect(0, 0, 500, 500, COLOR_TANK2)
+    kandinsky.draw_string("Le tank bleu a gagné !!!",40,100,(0, 0, 0),COLOR_TANK2)
+    kandinsky.draw_string("Relancez le programme",40,120,(0, 0, 0),COLOR_TANK2)
+  if vie_tank2 <= 0:
+    running = False
+    kandinsky.fill_rect(0, 0, 500, 500, COLOR_TANK1)
+    kandinsky.draw_string("Le tank rouge a gagné !!!",40,100,(0, 0, 0),COLOR_TANK1)
+    kandinsky.draw_string("Relancez le programme",40,120,(0, 0, 0),COLOR_TANK1)
 
 # Boucle principale
+running = True
 try:
-    while True:
+    while running:
+        start_time = monotonic()  # Capture du temps au début de la boucle
         move_tank1()
         move_tank2()
         move_bullets()
         draw()
-        sleep(0.05)
+        HUD()
+        test_mort()
+        # Limiter le temps de rafraîchissement pour atteindre un taux constant
+        elapsed_time = monotonic() - start_time
+        sleep_time = frame_time - elapsed_time
+        if sleep_time > 0:
+            sleep(sleep_time)  # Attente pour maintenir un taux de rafraîchissement constant
 except KeyboardInterrupt:
     print("Jeu interrompu!!!")
